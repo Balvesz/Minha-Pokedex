@@ -69,12 +69,10 @@ O projeto foi desenvolvido combinando lógica de programação tradicional com f
    python files/main.py
    ```
 
-<<<<<<< HEAD
-## ⚖️ Aviso Legal (Disclaimer)
+## ⚖️ Disclaimer
 
 Este é um projeto de fã desenvolvido puramente para fins educacionais e de estudo de programação, sem fins lucrativos. Todos os direitos de imagem, nomes e marcas registradas pertencem à Nintendo, Game Freak e The Pokémon Company.
-=======
+
 ## 🎵 Música
 
 A faixa **Flowerbed Fields [Loop]**, de **Zane Little Music**, está disponível no [OpenGameArt](https://opengameart.org/content/flowerbed-fields-loop) sob licença [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). O autor a descreve como um loop chiptune fofo para iniciar uma aventura; as tags incluem Game Boy, RPG, 8-bit e chiptune. O efeito de seleção dos botões, **8bit Menu Select** por **Fupi**, também é CC0 e foi obtido no [OpenGameArt](https://opengameart.org/content/8bit-menu-select). A atribuição é opcional sob CC0; fontes e informações estão em `files/audio/LICENSE.txt`.
->>>>>>> 2e8950a (Funcionalidades e tecnologias atualizadas e créditos das músicas)
