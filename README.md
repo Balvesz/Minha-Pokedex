@@ -1,6 +1,7 @@
 # 🗺️ Pokédex (Kanto - Pokémon 1 a 151)
 
-[![GitHub Copilot](https://shields.io)](https://github.com/Balvesz/Minha-Pokedex.git)
+![GitHub Copilot](https://shields.io)
+
 
 
 Este é um projeto pessoal focado no meu aprendizado de programação. É uma Pokédex interativa desenvolvida em Python que lista e exibe detalhes dos primeiros 151 Pokémon da franquia (Geração 1), incluindo o suporte para a visualização de suas formas alternativas.
