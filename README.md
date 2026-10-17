@@ -59,3 +59,7 @@ O projeto foi desenvolvido combinando lógica de programação tradicional com f
    ```bash
    python files/main.py
    ```
+
+## ⚖️ Aviso Legal (Disclaimer)
+
+Este é um projeto de fã desenvolvido puramente para fins educacionais e de estudo de programação, sem fins lucrativos. Todos os direitos de imagem, nomes e marcas registradas pertencem à Nintendo, Game Freak e The Pokémon Company.
