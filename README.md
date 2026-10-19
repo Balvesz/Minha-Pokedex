@@ -45,12 +45,16 @@ O visualizador do modo 3 consulta a [PokéAPI](https://pokeapi.co/) pela interne
 
 <table>
   <tr>
-    <td><strong>Sistema de busca por nome</strong><br><img src="print1.png" width="450"></td>
-    <td><strong>Sistema de busca por número</strong><br><img src="print2.png" width="450"></td>
+    <td><strong>Menu inicial</strong><br><img src="print1.png" width="450"></td>
+    <td><strong>Sistema de busca por nome</strong><br><img src="print2.png" width="450"></td>
   </tr>
   <tr>
-    <td><strong>Sistema de busca de forma alternativa por número</strong><br><img src="print3.png" width="450"></td>
-    <td><strong>Sistema de busca de forma alternativa por nome</strong><br><img src="print4.png" width="450"></td>
+    <td><strong>Sistema de busca por número</strong><br><img src="print3.png" width="450"></td>
+    <td><strong>Tabela de tipos do sistema de busca por tipo</strong><br><img src="print4.png" width="450"></td>
+  </tr>
+  <tr>
+    <td><strong>Tabela de pokémon do sistema de busca por tipo</strong><br><img src="print5.png" width="450"></td>
+    <td><strong>Tela do viewer de stats / moves</strong><br><img src="print6.png" width="450"></td>
   </tr>
 </table>
 
