@@ -21,9 +21,10 @@ O projeto foi desenvolvido combinando lógica de programação tradicional com f
 
 * **Python 3.13** - Linguagem base utilizada para a construção de todo o ecossistema.
 * **Pygame** - Reproduz a música de fundo e controla o volume sem alterar o áudio de outros aplicativos.
-* **Banco de Dados Estruturado (`database_pokemons.py`)** - Desenvolvido 100% por mim para mapear os 151 Pokémon originais, suas tipagens, fraquezas, cadeias evolutivas e caminhos de arquivos de forma local e offline.
+* **Banco de Dados Estruturado (`database_pokemons.py`)** - Desenvolvido 100% por mim para mapear os 151 Pokémon originais, suas tipagens, fraquezas, cadeias evolutivas e caminhos de arquivos localmente.
 * **Tkinter (HUD)** - Interface gráfica construída em colaboração com o **GitHub Copilot**. Atuei no direcionamento estético, refinamento de layout, regras de negócios e na integração total da interface com os dados dos Pokémon.
 * **Módulos nativos (`os`, `re`, `urllib`)** - Utilizados para a engenharia de busca flexível (por nome, número ou sintaxes como `6.x`) e manipulação interna de diretórios.
+* **PokéAPI** - Fornece os stats e os moves para o visualizador do modo 3.
 
 ## 📌 Funcionalidades Atualizadas
 
@@ -33,7 +34,12 @@ O projeto foi desenvolvido combinando lógica de programação tradicional com f
 * **Música e áudio**: faixa de fundo em loop iniciada em 10% de volume, som chiptune ao acionar controles, botão de mute nas telas e ajustes na tela de configurações integrada ao visor.
 * **Catálogo Completo de Kanto**: Exibição dos Pokémon do número **1 ao 151**.
 * **Formas Alternativas**: Suporte integrado para alternar e visualizar variações (como versões Shiny, Mega, Gigantamax e formas regionais alternativas).
+* **Visualizador de stats e moves**: Consulta os stats-base atuais, os intervalos estimados no nível 100 e os moves aprendidos por nível, máquina (TM/HM), ovo, tutor e outros métodos. A Pokébola na página de um Pokémon também abre o visualizador já carregando os dados daquele Pokémon.
 * **Organização Modular**: Código dividido em arquivos separados para facilitar a manutenção.
+
+## 🌐 Dados do visualizador de stats
+
+O visualizador do modo 3 consulta a [PokéAPI](https://pokeapi.co/) pela internet. As respostas são armazenadas em cache local e reutilizadas por 30 dias antes de tentar atualizá-las. Se a conexão falhar, dados já armazenados podem ser exibidos com um aviso; a primeira consulta de cada Pokémon e move requer internet. Os moves são agrupados por método de aprendizagem e vêm do learnset de *Pokémon Scarlet/Violet* (incluindo suas DLCs) quando disponível, ou de jogos anteriores. O título da tabela informa a versão usada. Os stats são os valores-base atuais fornecidos pela API.
 
 ## 📸 Demonstração Visual
 

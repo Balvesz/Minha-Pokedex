@@ -1,15 +1,20 @@
 import os
+import queue
 import re
+import threading
 import tkinter as tk
-from tkinter import messagebox
+import unicodedata
+from tkinter import messagebox, ttk
 from urllib.request import urlopen
 
 import pygame
 
 if __package__:
     from . import database_pokemons as database
+    from . import pokemon_stats
 else:
     import database_pokemons as database
+    import pokemon_stats
 
 
 def iniciar_hud():
@@ -1045,6 +1050,634 @@ def iniciar_hud():
     def voltar_ao_menu_da_busca_tipo():
         voltar_direto_ao_menu()
 
+    def abrir_visualizador_stats(pokemon_inicial=None):
+        janela_stats = tk.Toplevel(janela)
+        janela_stats.title('Pokédex · Stats e moves')
+        janela_stats.configure(bg='#4e1118')
+        janela_stats.geometry('1180x850')
+        janela_stats.minsize(940, 680)
+        janela.withdraw()
+
+        estado_stats = {'dados': None, 'carregando': False}
+        fila_resultados = queue.Queue()
+
+        def fechar_visualizador():
+            if janela_stats.winfo_exists():
+                janela_stats.destroy()
+            janela.deiconify()
+            janela.lift()
+
+        janela_stats.protocol('WM_DELETE_WINDOW', fechar_visualizador)
+        janela_stats.bind('<Escape>', lambda evento: fechar_visualizador())
+
+        botao_mute_stats = tk.Button(
+            janela_stats,
+            text='',
+            command=comando_com_som(alternar_mute),
+            font=('Arial', 9, 'bold'),
+            bg='#263238',
+            fg='white',
+            activebackground='#455a64',
+            activeforeground='white',
+            relief='flat',
+            padx=10,
+            pady=5,
+        )
+        botao_mute_stats.place(x=12, y=12)
+        botoes_mute.append(botao_mute_stats)
+        atualizar_botoes_mute()
+
+        tk.Label(
+            janela_stats,
+            text='VISUALIZADOR DE STATS E MOVES',
+            font=('Arial', 20, 'bold'),
+            bg='#4e1118',
+            fg='#ffca28',
+        ).pack(padx=24, pady=(20, 14))
+
+        moldura_stats = tk.Frame(
+            janela_stats, bg=vermelho_escuro, padx=10, pady=10
+        )
+        moldura_stats.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+
+        painel_stats = tk.Frame(moldura_stats, bg=azul_tela, padx=16, pady=14)
+        painel_stats.pack(fill='both', expand=True)
+        painel_stats.columnconfigure(0, weight=1)
+        painel_stats.rowconfigure(3, weight=1)
+
+        tk.Label(
+            painel_stats,
+            text='Insira o nome ou o número do pokémon',
+            font=('Arial', 11, 'bold'),
+            bg=azul_tela,
+            fg='#263238',
+        ).grid(row=0, column=0, sticky='w', pady=(0, 6))
+
+        barra_pesquisa_stats = tk.Frame(painel_stats, bg=azul_tela)
+        barra_pesquisa_stats.grid(row=1, column=0, sticky='ew')
+        barra_pesquisa_stats.columnconfigure(0, weight=1)
+
+        entrada_stats = ttk.Combobox(
+            barra_pesquisa_stats,
+            values=[pokemon.name for pokemon in database.pokemons],
+            font=('Arial', 11),
+        )
+        entrada_stats.grid(row=0, column=0, sticky='ew', padx=(0, 8))
+        if pokemon_inicial is not None:
+            entrada_stats.set(pokemon_inicial.name)
+
+        status_stats = tk.Label(
+            painel_stats,
+            text='Os dados de stats e moves são carregados da internet.',
+            font=('Arial', 9),
+            bg=azul_tela,
+            fg='#455a64',
+            anchor='w',
+        )
+        status_stats.grid(row=2, column=0, sticky='ew', pady=(6, 10))
+
+        ttk_style = ttk.Style(janela_stats)
+        ttk_style.configure(
+            'Stats.Treeview',
+            rowheight=25,
+            font=('Arial', 9),
+        )
+        ttk_style.configure(
+            'Stats.Treeview.Heading',
+            font=('Arial', 9, 'bold'),
+        )
+
+        conteudo_stats = tk.Frame(painel_stats, bg=azul_tela)
+        conteudo_stats.grid(row=3, column=0, sticky='nsew')
+        conteudo_stats.columnconfigure(0, weight=1)
+
+        tk.Label(
+            conteudo_stats,
+            text='STATS BASE',
+            font=('Arial', 12, 'bold'),
+            bg=azul_tela,
+            fg='#263238',
+        ).grid(row=0, column=0, sticky='w')
+
+        tabela_stats = tk.Frame(conteudo_stats, bg=azul_tela)
+        tabela_stats.grid(row=1, column=0, sticky='ew', pady=(4, 0))
+        tabela_stats.columnconfigure(2, weight=1)
+        for indice, texto in enumerate(
+            ('STAT', 'BASE', 'DISTRIBUIÇÃO', 'MÍN. LVL 100', 'MÁX. LVL 100')
+        ):
+            tk.Label(
+                tabela_stats,
+                text=texto,
+                font=('Arial', 8, 'bold'),
+                bg='#263238',
+                fg='white',
+                padx=6,
+                pady=5,
+                anchor='center',
+            ).grid(row=0, column=indice, sticky='ew', padx=(0, 1))
+
+        widgets_stats = []
+        for indice, nome_stat in enumerate(pokemon_stats.STAT_ORDER, start=1):
+            tk.Label(
+                tabela_stats,
+                text=pokemon_stats.STAT_LABELS[nome_stat],
+                font=('Arial', 9),
+                bg=azul_tela,
+                fg='#263238',
+                anchor='w',
+                padx=6,
+            ).grid(row=indice, column=0, sticky='ew', pady=2)
+
+            valor_base = tk.Label(
+                tabela_stats,
+                text='—',
+                font=('Arial', 9, 'bold'),
+                bg=azul_tela,
+                fg='#263238',
+                padx=8,
+            )
+            valor_base.grid(row=indice, column=1, pady=2)
+
+            barra_stat = tk.Canvas(
+                tabela_stats,
+                height=18,
+                bg='#d7eaf8',
+                highlightthickness=0,
+            )
+            barra_stat.grid(
+                row=indice,
+                column=2,
+                sticky='ew',
+                padx=6,
+                pady=2,
+            )
+            valor_minimo = tk.Label(
+                tabela_stats,
+                text='—',
+                font=('Arial', 9),
+                bg=azul_tela,
+                fg='#263238',
+                padx=8,
+            )
+            valor_minimo.grid(row=indice, column=3, pady=2)
+            valor_maximo = tk.Label(
+                tabela_stats,
+                text='—',
+                font=('Arial', 9),
+                bg=azul_tela,
+                fg='#263238',
+                padx=8,
+            )
+            valor_maximo.grid(row=indice, column=4, pady=2)
+            widgets_stats.append(
+                (valor_base, barra_stat, valor_minimo, valor_maximo)
+            )
+
+        total_stats = tk.Label(
+            tabela_stats,
+            text='TOTAL: —',
+            font=('Arial', 10, 'bold'),
+            bg=azul_tela,
+            fg='#263238',
+            anchor='e',
+        )
+        total_stats.grid(
+            row=len(pokemon_stats.STAT_ORDER) + 1,
+            column=0,
+            columnspan=5,
+            sticky='e',
+            pady=(3, 10),
+        )
+
+        tk.Label(
+            conteudo_stats,
+            text=(
+                'Mínimo: natureza desfavorável, 0 IVs e 0 EVs. '
+                'Máximo: natureza favorável, 31 IVs e 252 EVs. Nível 100.'
+            ),
+            font=('Arial', 8),
+            bg=azul_tela,
+            fg='#455a64',
+            anchor='w',
+        ).grid(row=2, column=0, sticky='ew', pady=(0, 12))
+
+        titulo_moves = tk.Label(
+            conteudo_stats,
+            text='MOVES APRENDIDOS',
+            font=('Arial', 12, 'bold'),
+            bg=azul_tela,
+            fg='#263238',
+        )
+        titulo_moves.grid(row=3, column=0, sticky='w', pady=(0, 5))
+
+        barra_filtros = tk.Frame(conteudo_stats, bg=azul_tela)
+        barra_filtros.grid(row=4, column=0, sticky='ew', pady=(0, 5))
+        barra_filtros.columnconfigure(1, weight=1)
+        tk.Label(
+            barra_filtros,
+            text='Método:',
+            font=('Arial', 9, 'bold'),
+            bg=azul_tela,
+            fg='#263238',
+        ).grid(row=0, column=0, padx=(0, 6))
+
+        metodo_selecionado = tk.StringVar(value='Todos')
+        filtro_metodo = ttk.Combobox(
+            barra_filtros,
+            textvariable=metodo_selecionado,
+            state='readonly',
+            values=('Todos',),
+            width=24,
+        )
+        filtro_metodo.grid(row=0, column=1, sticky='w')
+        chave_por_filtro = {}
+
+        total_moves = tk.Label(
+            barra_filtros,
+            text='0 moves',
+            font=('Arial', 9),
+            bg=azul_tela,
+            fg='#455a64',
+            anchor='e',
+        )
+        total_moves.grid(row=0, column=2, sticky='e')
+
+        tabela_moves_frame = tk.Frame(conteudo_stats, bg=azul_tela)
+        tabela_moves_frame.grid(row=5, column=0, sticky='nsew')
+        tabela_moves_frame.columnconfigure(0, weight=1)
+        tabela_moves_frame.rowconfigure(0, weight=1)
+        conteudo_stats.rowconfigure(5, weight=1)
+
+        colunas_moves = (
+            'method',
+            'level',
+            'move',
+            'type',
+            'category',
+            'power',
+            'accuracy',
+        )
+        tabela_moves = ttk.Treeview(
+            tabela_moves_frame,
+            columns=colunas_moves,
+            show='headings',
+            style='Stats.Treeview',
+        )
+        titulos_colunas = {
+            'method': 'MÉTODO',
+            'level': 'NÍVEL',
+            'move': 'MOVE',
+            'type': 'TIPO',
+            'category': 'CATEGORIA',
+            'power': 'PODER',
+            'accuracy': 'PRECISÃO',
+        }
+        larguras_colunas = {
+            'method': 150,
+            'level': 70,
+            'move': 240,
+            'type': 115,
+            'category': 120,
+            'power': 85,
+            'accuracy': 100,
+        }
+        for coluna in colunas_moves:
+            tabela_moves.heading(coluna, text=titulos_colunas[coluna])
+            tabela_moves.column(
+                coluna,
+                width=larguras_colunas[coluna],
+                minwidth=60,
+                stretch=coluna == 'move',
+                anchor='w' if coluna in ('method', 'move') else 'center',
+            )
+
+        barra_vertical_moves = ttk.Scrollbar(
+            tabela_moves_frame,
+            orient='vertical',
+            command=tabela_moves.yview,
+        )
+        barra_horizontal_moves = ttk.Scrollbar(
+            tabela_moves_frame,
+            orient='horizontal',
+            command=tabela_moves.xview,
+        )
+        tabela_moves.configure(
+            yscrollcommand=barra_vertical_moves.set,
+            xscrollcommand=barra_horizontal_moves.set,
+        )
+        tabela_moves.grid(row=0, column=0, sticky='nsew')
+        barra_vertical_moves.grid(row=0, column=1, sticky='ns')
+        barra_horizontal_moves.grid(row=1, column=0, sticky='ew')
+        tabela_moves_frame.rowconfigure(0, weight=1)
+
+        nomes_tipos = {
+            'normal': 'Normal',
+            'fighting': 'Lutador',
+            'flying': 'Voador',
+            'poison': 'Venenoso',
+            'ground': 'Terra',
+            'rock': 'Pedra',
+            'bug': 'Inseto',
+            'ghost': 'Fantasma',
+            'steel': 'Aço',
+            'fire': 'Fogo',
+            'water': 'Água',
+            'grass': 'Grama',
+            'electric': 'Elétrico',
+            'psychic': 'Psíquico',
+            'ice': 'Gelo',
+            'dragon': 'Dragão',
+            'dark': 'Sombrio',
+            'fairy': 'Fada',
+        }
+        nomes_categorias = {
+            'physical': 'Físico',
+            'special': 'Especial',
+            'status': 'Status',
+        }
+
+        def atualizar_tabela_moves(_evento=None):
+            dados = estado_stats['dados']
+            if dados is None:
+                return
+
+            filtro = metodo_selecionado.get()
+            linhas = [
+                move for move in dados['moves']
+                if filtro == 'Todos'
+                or (
+                    filtro == 'Outros'
+                    and move['method_label'] not in {
+                        'Subindo de nível',
+                        'Máquina (TM/HM)',
+                        'Ovo',
+                        'Tutor',
+                        'Treinamento',
+                    }
+                )
+                or move['method'] == chave_por_filtro.get(filtro)
+            ]
+            tabela_moves.delete(*tabela_moves.get_children())
+            for move in linhas:
+                tabela_moves.insert(
+                    '',
+                    'end',
+                    values=(
+                        move['method_label'],
+                        move['level'] if move['level'] else '—',
+                        move['name'],
+                        nomes_tipos.get(move['type'], move['type'].title()),
+                        nomes_categorias.get(
+                            move['category'], move['category'].title()
+                        ),
+                        move['power'] if move['power'] is not None else '—',
+                        move['accuracy']
+                        if move['accuracy'] is not None else '—',
+                    ),
+                )
+            if not linhas:
+                tabela_moves.insert(
+                    '',
+                    'end',
+                    values=(
+                        '—',
+                        '—',
+                        'Nenhum move encontrado para este learnset.',
+                        '—',
+                        '—',
+                        '—',
+                        '—',
+                    ),
+                )
+            total_moves.config(text=f'{len(linhas)} moves')
+
+        filtro_metodo.bind('<<ComboboxSelected>>', atualizar_tabela_moves)
+
+        def desenhar_barra_stat(canvas, valor):
+            canvas.delete('all')
+            largura = canvas.winfo_width()
+            if largura <= 1:
+                return
+            preenchimento = max(1, (largura - 4) * min(valor, 255) / 255)
+            cor = '#ffd54f' if valor >= 100 else '#ff8f00'
+            canvas.create_rectangle(
+                2, 3, 2 + preenchimento, 15, fill=cor, outline=''
+            )
+
+        def apresentar_dados(pokemon, dados):
+            estado_stats['dados'] = dados
+            titulo_moves.config(
+                text=f'MOVES APRENDIDOS · {dados["learnset_game"]}'
+            )
+            status_stats.config(
+                text=(
+                    f'{pokemon.name} · Nº {int(pokemon.num):03d} · '
+                    'Fonte: PokéAPI'
+                ),
+                fg='#455a64',
+            )
+            if dados['cached']:
+                status_stats.config(
+                    text=f'{status_stats.cget("text")} · cache local'
+                )
+            if dados['stale_cache']:
+                status_stats.config(
+                    text=(
+                        f'{pokemon.name} · dados do cache local estão '
+                        'desatualizados; a conexão com a API falhou.'
+                    ),
+                    fg='#b71c1c',
+                )
+
+            for widget_stats, stat in zip(widgets_stats, dados['stats']):
+                valor_base, barra_stat, valor_minimo, valor_maximo = widget_stats
+                valor_base.config(text=str(stat['base']))
+                valor_minimo.config(text=str(stat['minimum']))
+                valor_maximo.config(text=str(stat['maximum']))
+                barra_stat.bind(
+                    '<Configure>',
+                    lambda evento, canvas=barra_stat, valor=stat['base']:
+                    desenhar_barra_stat(canvas, valor),
+                )
+                desenhar_barra_stat(barra_stat, stat['base'])
+            total_stats.config(text=f'TOTAL: {dados["total"]}')
+
+            metodos = sorted({
+                move['method'] for move in dados['moves']
+            }, key=lambda method: (
+                pokemon_stats.LEARN_METHOD_ORDER.get(method, 4),
+                method.casefold(),
+            ))
+            rotulos_filtro = {
+                'level-up': 'Nivel',
+                'machine': 'Maquina (TM/HM)',
+                'egg': 'Ovo',
+                'tutor': 'Tutor',
+                'train': 'Treinamento',
+            }
+            chave_por_filtro.clear()
+            opcoes_filtro = ['Todos']
+            for metodo in metodos:
+                rotulo = rotulos_filtro.get(
+                    metodo, metodo.replace('-', ' ').title()
+                )
+                chave_por_filtro[rotulo] = metodo
+                opcoes_filtro.append(rotulo)
+            if any(metodo not in rotulos_filtro for metodo in metodos):
+                opcoes_filtro.append('Outros')
+            filtro_metodo.configure(values=opcoes_filtro)
+            metodo_selecionado.set('Todos')
+            atualizar_tabela_moves()
+
+        def concluir_pesquisa(pokemon, resultado):
+            estado_stats['carregando'] = False
+            botao_pesquisar.config(state='normal')
+            entrada_stats.config(state='normal')
+            if isinstance(resultado, pokemon_stats.StatsDataError):
+                status_stats.config(
+                    text=f'Erro ao carregar os dados: {resultado}',
+                    fg='#b71c1c',
+                )
+                return
+            apresentar_dados(pokemon, resultado)
+
+        def verificar_resultado():
+            if not janela_stats.winfo_exists():
+                return
+            try:
+                pokemon, resultado = fila_resultados.get_nowait()
+            except queue.Empty:
+                janela_stats.after(100, verificar_resultado)
+                return
+            concluir_pesquisa(pokemon, resultado)
+
+        def normalizar_nome_pokemon(nome):
+            sem_acentos = ''.join(
+                caractere
+                for caractere in unicodedata.normalize('NFD', nome.casefold())
+                if not unicodedata.combining(caractere)
+            )
+            return ' '.join(
+                re.sub(r'[^a-z0-9♀♂]+', ' ', sem_acentos).split()
+            )
+
+        def resolver_pokemon(entrada):
+            consulta = entrada.strip()
+            codigo = consulta.casefold().replace(' ', '')
+            nome_codificado = database.codigos_formas.get(codigo)
+            if nome_codificado:
+                chave = normalizar_nome_pokemon(nome_codificado)
+                return next(
+                    pokemon for pokemon in database.pokemons
+                    if normalizar_nome_pokemon(pokemon.name) == chave
+                )
+
+            if consulta.isdigit():
+                numero = int(consulta)
+                encontrados = [
+                    pokemon for pokemon in database.pokemons
+                    if int(pokemon.num) == numero
+                ]
+                return next(
+                    (
+                        pokemon for pokemon in encontrados
+                        if not any((
+                            pokemon.mega,
+                            pokemon.gigantamax,
+                            pokemon.alolan,
+                            pokemon.galarian,
+                            pokemon.hisuian,
+                            pokemon.paldean,
+                        ))
+                    ),
+                    encontrados[0] if encontrados else None,
+                )
+
+            chave = normalizar_nome_pokemon(consulta)
+            return next(
+                (
+                    pokemon for pokemon in database.pokemons
+                    if normalizar_nome_pokemon(pokemon.name) == chave
+                ),
+                None,
+            )
+
+        def obter_id_api(pokemon):
+            nome = pokemon.name.lower()
+            caminho = database.imagens_formas.get(nome, '')
+            sprite_id = os.path.splitext(os.path.basename(caminho))[0]
+            if sprite_id.isdigit():
+                return int(sprite_id)
+            return int(
+                database.ids_sprites_formas.get(nome, str(int(pokemon.num)))
+            )
+
+        def pesquisar_stats(_evento=None):
+            if estado_stats['carregando']:
+                return
+            pokemon = resolver_pokemon(entrada_stats.get())
+            if pokemon is None:
+                status_stats.config(
+                    text='Pokémon não encontrado. Pesquise pelo nome ou número do catálogo.',
+                    fg='#b71c1c',
+                )
+                return
+
+            api_id = obter_id_api(pokemon)
+            estado_stats['carregando'] = True
+            botao_pesquisar.config(state='disabled')
+            entrada_stats.config(state='disabled')
+            status_stats.config(
+                text=f'Carregando stats e moves de {pokemon.name}...',
+                fg='#174ea6',
+            )
+
+            def carregar():
+                try:
+                    resultado = pokemon_stats.buscar_dados(api_id)
+                except pokemon_stats.StatsDataError as erro:
+                    resultado = erro
+                fila_resultados.put((pokemon, resultado))
+
+            threading.Thread(target=carregar, daemon=True).start()
+            janela_stats.after(100, verificar_resultado)
+
+        botao_pesquisar = tk.Button(
+            barra_pesquisa_stats,
+            text='PESQUISAR',
+            command=comando_com_som(pesquisar_stats),
+            font=('Arial', 10, 'bold'),
+            bg='#fdd835',
+            fg='#263238',
+            activebackground='#fff176',
+            relief='flat',
+            padx=16,
+            pady=5,
+        )
+        botao_pesquisar.grid(row=0, column=1)
+        adicionar_hover_botao(botao_pesquisar, '#fdd835', '#fff176')
+        entrada_stats.bind('<Return>', pesquisar_stats)
+
+        botao_voltar_stats = tk.Button(
+            painel_stats,
+            text='VOLTAR AO MENU',
+            command=comando_com_som(fechar_visualizador),
+            font=('Arial', 9, 'bold'),
+            bg='#b71c1c',
+            fg='white',
+            activebackground='#e53935',
+            relief='flat',
+            padx=12,
+            pady=5,
+        )
+        botao_voltar_stats.grid(row=4, column=0, sticky='e', pady=(8, 0))
+        adicionar_hover_botao(botao_voltar_stats, '#b71c1c', '#e53935')
+
+        if pokemon_inicial is not None:
+            janela_stats.after_idle(pesquisar_stats)
+        else:
+            janela_stats.after(100, lambda: entrada_stats.focus_set())
+
     def abrir_configuracoes():
         menu_botoes.pack_forget()
         titulo_opcoes_menu.config(text='CONFIGURAÇÕES')
@@ -1143,15 +1776,18 @@ def iniciar_hud():
     botao_busca_tipo.pack(fill='x', pady=5)
     adicionar_hover_botao(botao_busca_tipo, '#fdd835', '#fff176')
 
-    tk.Button(
+    botao_visualizador_stats = tk.Button(
         menu_botoes,
-        text='MODO 3 (EM BREVE)',
-        state='disabled',
+        text='VISUALIZADOR DE STATS',
+        command=comando_com_som(abrir_visualizador_stats),
         bg='#fdd835',
         fg='#263238',
-        disabledforeground='#263238',
+        activebackground='#ffee58',
+        activeforeground='#171717',
         **estilo_botao_menu,
-    ).pack(fill='x', pady=5)
+    )
+    botao_visualizador_stats.pack(fill='x', pady=5)
+    adicionar_hover_botao(botao_visualizador_stats, '#fdd835', '#fff176')
 
     botao_configuracoes = tk.Button(
         menu_botoes,
@@ -1533,6 +2169,15 @@ def iniciar_hud():
         animar_hover_pokebola(True),
     ))
     pokebola.bind('<Leave>', lambda evento: animar_hover_pokebola(False))
+    pokebola.configure(cursor='hand2')
+
+    def abrir_stats_pokemon_atual():
+        abrir_visualizador_stats(estado_navegacao['pokemon_atual'])
+
+    pokebola.bind(
+        '<Button-1>',
+        lambda evento: comando_com_som(abrir_stats_pokemon_atual)(),
+    )
     pokebola.grid(row=3, column=0, pady=(14, 0), sticky='s')
 
     def atualizar_wrap_texto(evento):
